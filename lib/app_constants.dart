@@ -1,5 +1,3 @@
-
-
 class RoutePaths {
   static const String Home = '/';
   static const String BottomNavigationBar = 'bottom_navigation_bar';
@@ -149,21 +147,6 @@ class DataPersistence {
 /// Maps Card IDs to Card titles
 class CardTitleConstants {
   static const titleMap = {
-    'NativeScanner': 'Scanner',
-    'MyStudentChart': 'MyStudentChart',
-    'MyUCSDChart': 'MyUCSDChart',
-    'student_survey': 'Student Survey',
-    'student_id': 'Student ID',
-    'speed_test': "Speed Test",
-    'employee_id': 'Employee ID',
-    'finals': 'Finals',
-    'schedule': 'Classes',
-    'shuttle': "Shuttle",
-    'dining': 'Dining',
-    'availability': 'Availability',
-    'events': 'Events',
-    'news': 'News',
-    'parking': 'Parking',
-    'weather': 'Weather',
+    'weather': 'Native Card',
   };
 }

@@ -1,5 +1,3 @@
-
-
 import 'package:campus_mobile_experimental/app_constants.dart';
 import 'package:campus_mobile_experimental/core/models/cards.dart';
 import 'package:campus_mobile_experimental/core/providers/user.dart';
@@ -16,38 +14,14 @@ class CardsDataProvider extends ChangeNotifier {
 
     // Default card order for native cards
     _cardOrder = [
-      'NativeScanner',
-      'MyStudentChart',
-      'MyUCSDChart',
-      'finals',
-      'schedule',
-      'student_survey',
-      'student_id',
-      'employee_id',
-      'availability',
-      'dining',
-      'events',
-      'shuttle',
-      'parking',
-      'news',
-      'weather',
-      'speed_test',
+      'native_card_prototype',
     ];
 
     // Native student cards
-    _studentCards = [
-      'finals',
-      'schedule',
-      'student_survey',
-      'student_id',
-    ];
+    _studentCards = [];
 
     // Native staff cards
-    _staffCards = [
-      'MyUCSDChart',
-      'staff_info',
-      'employee_id',
-    ];
+    _staffCards = [];
 
     for (String card in CardTitleConstants.titleMap.keys.toList()) {
       _cardStates![card] = true;
@@ -151,7 +125,7 @@ class CardsDataProvider extends ChangeNotifier {
   /// Update the [_cardOrder] stored in state
   /// overwrite the [_cardOrder] in persistent storage with the model passed in
   Future updateCardOrder(List<String>? newOrder) async {
-    if(_userDataProvider == null || _userDataProvider!.isInSilentLogin) {
+    if (_userDataProvider == null || _userDataProvider!.isInSilentLogin) {
       return;
     }
     try {
@@ -168,7 +142,7 @@ class CardsDataProvider extends ChangeNotifier {
   /// Load [_cardOrder] from persistent storage
   /// Will create persistent storage if no data is found
   Future _loadCardOrder() async {
-    if(_userDataProvider == null || _userDataProvider!.isInSilentLogin) {
+    if (_userDataProvider == null || _userDataProvider!.isInSilentLogin) {
       return;
     }
     _cardOrderBox = await Hive.openBox(DataPersistence.cardOrder);
@@ -200,7 +174,7 @@ class CardsDataProvider extends ChangeNotifier {
   /// Update the [_cardStates] stored in state
   /// overwrite the [_cardStates] in persistent storage with the model passed in
   Future updateCardStates(List<String> activeCards) async {
-    if(_userDataProvider == null || _userDataProvider!.isInSilentLogin) {
+    if (_userDataProvider == null || _userDataProvider!.isInSilentLogin) {
       return;
     }
     for (String activeCard in activeCards) {

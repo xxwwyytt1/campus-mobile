@@ -1,5 +1,3 @@
-
-
 import 'dart:async';
 
 import 'package:campus_mobile_experimental/app_networking.dart';
@@ -25,40 +23,40 @@ class CardsService {
       ucsdAffiliation = "";
 
     /// API Manager Service
-    try {
-      String cardListEndpoint =
-          "https://api-qa.ucsd.edu:8243/defaultcards/v6.0.0/defaultcards?ucsdaffiliation=" +
-              ucsdAffiliation;
-      String _response =
-          await _networkHelper.authorizedFetch(cardListEndpoint, headers);
-      _cardsModel = cardsModelFromJson(_response);
-      _isLoading = false;
-      return true;
-    } catch (e) {
-      if (e.toString().contains("401")) {
-        if (await getNewToken()) {
-          return await fetchCards(ucsdAffiliation);
-        }
-      }
-      _error = e.toString();
-      _isLoading = false;
-      return false;
-    }
-
-    /// Card Prototyping Service
     // try {
-    //   String cardPrototypeEndpoint =
-    //       "https://mobile.ucsd.edu/replatform/v1/qa/cards/prototypes/card-prototype--copy-me.json";
-    //   String _response = await _networkHelper.fetchData(cardPrototypeEndpoint);
+    //   String cardListEndpoint =
+    //       "https://api-qa.ucsd.edu:8243/defaultcards/v6.0.0/defaultcards?ucsdaffiliation=" +
+    //           ucsdAffiliation;
+    //   String _response =
+    //       await _networkHelper.authorizedFetch(cardListEndpoint, headers);
     //   _cardsModel = cardsModelFromJson(_response);
     //   _isLoading = false;
     //   return true;
     // } catch (e) {
-    //   print(e);
+    //   if (e.toString().contains("401")) {
+    //     if (await getNewToken()) {
+    //       return await fetchCards(ucsdAffiliation);
+    //     }
+    //   }
     //   _error = e.toString();
     //   _isLoading = false;
     //   return false;
     // }
+
+    /// Card Prototyping Service
+    try {
+      String cardPrototypeEndpoint =
+          "https://mobile.ucsd.edu/replatform/v1/qa/cards/prototypes/cards-prototype.json";
+      String _response = await _networkHelper.fetchData(cardPrototypeEndpoint);
+      _cardsModel = cardsModelFromJson(_response);
+      _isLoading = false;
+      return true;
+    } catch (e) {
+      print(e);
+      _error = e.toString();
+      _isLoading = false;
+      return false;
+    }
   }
 
   Future<bool> getNewToken() async {
