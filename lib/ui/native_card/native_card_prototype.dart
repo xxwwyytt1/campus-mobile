@@ -1,5 +1,3 @@
-
-
 import 'package:campus_mobile_experimental/app_constants.dart';
 import 'package:campus_mobile_experimental/core/models/weather.dart';
 import 'package:campus_mobile_experimental/core/providers/cards.dart';
@@ -9,11 +7,11 @@ import 'package:flutter/material.dart';
 import 'package:flutter/rendering.dart';
 import 'package:provider/provider.dart';
 
-const String cardId = 'weather';
+const String cardId = 'native_card_prototype';
 const String WEATHER_ICON_BASE_URL =
     'https://s3-us-west-2.amazonaws.com/ucsd-its-wts/images/v1/weather-icons/';
 
-class WeatherCard extends StatelessWidget {
+class NativeCardPrototype extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return CardContainer(

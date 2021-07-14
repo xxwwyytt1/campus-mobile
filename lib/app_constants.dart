@@ -147,6 +147,6 @@ class DataPersistence {
 /// Maps Card IDs to Card titles
 class CardTitleConstants {
   static const titleMap = {
-    'weather': 'Native Card',
+    'native_card_prototype': 'Native Card',
   };
 }

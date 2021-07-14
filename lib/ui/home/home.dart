@@ -2,7 +2,7 @@ import 'package:campus_mobile_experimental/app_styles.dart';
 import 'package:campus_mobile_experimental/core/models/cards.dart';
 import 'package:campus_mobile_experimental/core/providers/cards.dart';
 import 'package:campus_mobile_experimental/ui/common/webview_container.dart';
-import 'package:campus_mobile_experimental/ui/weather/weather_card.dart';
+import 'package:campus_mobile_experimental/ui/native_card/native_card_prototype.dart';
 import 'package:flutter/cupertino.dart';
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
@@ -39,8 +39,8 @@ class _HomeState extends State<Home> {
     for (String card in order) {
       if (!webCards!.containsKey(card)) {
         switch (card) {
-          case 'weather':
-            orderedCards.add(WeatherCard());
+          case 'native_card_prototype':
+            orderedCards.add(NativeCardPrototype());
             break;
         }
       } else {
