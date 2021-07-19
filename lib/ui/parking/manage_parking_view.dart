@@ -36,6 +36,7 @@ class _ManageParkingViewState extends State<ManageParkingView> {
     for (ParkingModel item in newOrder) {
       orderedLocationNames.add(item.locationName);
     }
+
     // parkingDataProvider.reorderLots(orderedLocationNames);
   }
 
