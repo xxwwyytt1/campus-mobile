@@ -24,6 +24,7 @@ class ParkingDataProvider extends ChangeNotifier {
   DateTime? _lastUpdated;
   String? _error;
   int selectedLots, selectedSpots;
+  // TODO: put it inside the method it's used
   static const MAX_SELECTED_LOTS = 10;
   static const MAX_SELECTED_SPOTS = 3;
   Map<String?, bool>? _parkingViewState = <String?, bool>{};
@@ -32,6 +33,8 @@ class ParkingDataProvider extends ChangeNotifier {
 
   ///MODELS
   Map<String?, ParkingModel>? _parkingModels;
+  // TODO: Spottypemodel should not exist bc it's only List<Spot>? spots
+  // TODO: spot query and parking query should be in the same file but different hooks
   SpotTypeModel? _spotTypeModel;
 
   ///SERVICES
@@ -55,6 +58,7 @@ class ParkingDataProvider extends ChangeNotifier {
             _userDataProvider.userProfileModel!.disabledParkingLots;
       } else {
         for (ParkingModel model in _parkingService.data!) {
+          // only activate defaultLots with data fetch from parkingService
           if (ParkingDefaults.defaultLots.contains(model.locationId)) {
             _parkingViewState![model.locationName] = true;
           } else {
@@ -63,8 +67,12 @@ class ParkingDataProvider extends ChangeNotifier {
         }
       }
 
+      // copy from _parkingViewState
+      // won't cz trouble if parking lot in _userDataProvider.userProfileModel!.disabledParkingLots is removed
+      // consider that edge case when re-writing
       for (ParkingModel model in _parkingService.data!) {
         newMapOfLots[model.locationName] = model;
+        // set view state = false if the parkingLot.locationName is not in _userDataProvider.userProfileModel!.disabledParkingLots;
         newMapOfLotStates[model.locationName] =
             (_parkingViewState![model.locationName] == null
                 ? false
@@ -146,7 +154,7 @@ class ParkingDataProvider extends ChangeNotifier {
     }
     return SpotTypeModel();
   }
-
+// TODO: should be a method of model
 // add or remove location availability display from card based on user selection, Limit to MAX_SELECTED
   void toggleLot(String? location, int numSelected) {
     selectedLots = numSelected;
@@ -154,7 +162,8 @@ class ParkingDataProvider extends ChangeNotifier {
       _parkingViewState![location] = !_parkingViewState![location]!;
       _parkingViewState![location]! ? selectedLots++ : selectedLots--;
     } else {
-      //prevent select
+      // prevent select
+      // can only un-select
       if (_parkingViewState![location]!) {
         selectedLots--;
         _parkingViewState![location] = !_parkingViewState![location]!;
@@ -219,12 +228,14 @@ class ParkingDataProvider extends ChangeNotifier {
     return totalAndOpenSpots;
   }
 
+  /// find parking lots corresponding to each neighborhood
   Map<String, List<String>> getParkingMap() {
     Map<String, List<String>> parkingMap = {};
     List<String> neighborhoodsToSort = [];
     for (ParkingModel model in _parkingService.data!) {
       neighborhoodsToSort.add(model.neighborhood!);
     }
+    // what is the purpose of this sort
     neighborhoodsToSort.sort();
     for (String neighborhood in neighborhoodsToSort) {
       List<String> val = [];
@@ -264,5 +275,4 @@ class ParkingDataProvider extends ChangeNotifier {
   Map<String?, bool>? get spotTypesState => _selectedSpotTypesState;
   Map<String?, bool>? get parkingViewState => _parkingViewState;
   Map<String?, Spot?>? get spotTypeMap => _spotTypeMap;
-  // SpotTypeModel? get spotTypeModel => _spotTypeModel;
 }

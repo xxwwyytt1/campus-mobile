@@ -22,6 +22,8 @@ class ParkingModel {
   Map<String, dynamic>? availability;
   DateTime? lastUpdated;
   String? availabilityType;
+  static const MAX_SELECTED_LOTS = 10;
+  static const MAX_SELECTED_SPOTS = 3;
 
   ParkingModel({
     this.neighborhood,

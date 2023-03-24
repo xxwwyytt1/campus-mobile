@@ -135,7 +135,9 @@ class UserProfileModel extends HiveObject {
   bool isOccuspaceLocationDisabled(String name) => disabledOccuspaceLocations!.contains(name);
   // TODO: test these to make sure it works
   bool isParkingLotDisabled(String name) => disabledParkingLots!.containsKey(name);
+  bool isParkingLotEnabled(String name) => !isParkingLotDisabled(name);
   bool isParkingSpotDisabled(String name) => disabledParkingSpots!.containsKey(name);
+  bool isParkingSpotEnabled(String name) => !isParkingSpotDisabled(name);
 }
 
 class Classifications {
