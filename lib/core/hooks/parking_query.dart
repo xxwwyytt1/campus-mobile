@@ -42,11 +42,10 @@ UseQueryResult<List<Spot>?, dynamic> useFetchSpotTypesModel()
       "accept": "application/json",
       "Authorization": "Basic djJlNEpYa0NJUHZ5akFWT0VRXzRqZmZUdDkwYTp2emNBZGFzZWpmaWZiUDc2VUJjNDNNVDExclVh"
     });
-      debugPrint("SPOTTYPESMODEL QUERY HOOK: FETCHING DATA!");
+    debugPrint("SPOTTYPESMODEL QUERY HOOK: FETCHING DATA!");
 
     /// parse data
     final data = List<Spot>.from(json.decode(_response)["spots"].map((x) => Spot.fromJson(x)));
     return data;
   });
 }
-

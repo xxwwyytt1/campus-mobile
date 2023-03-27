@@ -1,29 +1,39 @@
-import 'package:campus_mobile_experimental/core/providers/parking.dart';
 import 'package:campus_mobile_experimental/ui/common/container_view.dart';
 import 'package:flutter/material.dart';
+import 'package:flutter_hooks/flutter_hooks.dart';
+import 'package:fquery/fquery.dart';
 import 'package:provider/provider.dart';
+import '../../core/hooks/parking_query.dart';
+import '../../core/models/parking.dart';
+import '../../core/providers/user.dart';
 
-class ParkingStructureView extends StatefulWidget {
-  _ParkingStructureViewState createState() => _ParkingStructureViewState();
-}
-
-class _ParkingStructureViewState extends State<ParkingStructureView> {
-  late ParkingDataProvider parkingDataProvider;
-  bool showedScaffold = false;
+class ParkingStructureView extends HookWidget {
 
   @override
   Widget build(BuildContext context) {
-    parkingDataProvider = Provider.of<ParkingDataProvider>(context);
-    return ContainerView(
-      child: structureList(context),
+    final parking = useFetchParkingModels();
+    final userDataProvider = useMemoized(() {
+      debugPrint("Memoized UserDataProvider!");
+      return Provider.of<UserDataProvider>(context);
+    }, [context]);
+    useListenable(userDataProvider);
+    return parking.isFetching? Center(
+        child: CircularProgressIndicator(
+            color: Theme.of(context).colorScheme.secondary)) :
+    ContainerView(
+      child: structureList(context, parking, userDataProvider),
     );
   }
 
   // builds the listview that will be put into ContainerView
-  Widget structureList(BuildContext context) {
-    List<String> structures =
-        Provider.of<ParkingDataProvider>(context).getStructures();
-
+  Widget structureList(BuildContext context, UseQueryResult parking, UserDataProvider userDataProvider) {
+    final showedScaffold = useState(false);
+    List<String> structures = [];
+    for (ParkingModel model in parking.data!) {
+      if (model.isStructure!) {
+        structures.add(model.locationName!);
+      }
+    }
     // creates a list that will hold the list of building names
     List<Widget> list = [];
     list.add(ListTile(
@@ -40,15 +50,15 @@ class _ParkingStructureViewState extends State<ParkingStructureView> {
     ));
 
     int selectedLots = 0;
-    parkingDataProvider.parkingViewState!.forEach((key, value) {
-      if (value == true) {
+    parking.data!.forEach((parkingModel) {
+      if (userDataProvider.userProfileModel!.isParkingLotEnabled(parkingModel.locationName)) {
         selectedLots++;
       }
     });
     // loops through and adds buttons for the user to click on
     for (var i = 0; i < structures.length; i++) {
       bool structureState =
-          parkingDataProvider.parkingViewState![structures[i]]!;
+      userDataProvider.userProfileModel!.isParkingLotEnabled(structures[i]);
       list.add(
         ListTile(
           title: Padding(
@@ -67,15 +77,22 @@ class _ParkingStructureViewState extends State<ParkingStructureView> {
           onTap: () {
             if (selectedLots == 10 &&
                 !structureState &&
-                showedScaffold != true) {
+                !showedScaffold.value) {
               ScaffoldMessenger.of(context).showSnackBar(SnackBar(
                 content: Text(
                     'You have reached the maximum number of lots (10) that can be selected. You need to deselect some lots before you can add any more.'),
                 duration: Duration(seconds: 5),
               ));
-              showedScaffold = !showedScaffold;
+              showedScaffold.value = !showedScaffold.value;
             }
-            parkingDataProvider.toggleLot(structures[i], selectedLots);
+            //  only allow select if doesn't exceed maximum allowed
+            // if (structureState
+            //     || (!structureState && selectedLots < ParkingModel.MAX_SELECTED_LOTS)) {
+            //   selectedLots = selectedLots + (structureState ? -1 : 1);
+            //   userDataProvider.userProfileModel!.disabledParkingLots![structures[i]] = !(userDataProvider.userProfileModel!.disabledParkingLots![structures[i]]!);
+            //   userDataProvider.postUserProfile(userDataProvider.userProfileModel);
+            // }
+            // parkingDataProvider.toggleLot(structures[i], selectedLots);
           },
         ),
       );

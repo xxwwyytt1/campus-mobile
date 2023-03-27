@@ -13,7 +13,10 @@ class NeighborhoodsView extends HookWidget {
   @override
   Widget build(BuildContext context) {
     final parking = useFetchParkingModels();
-    return ContainerView(
+    return  parking.isFetching? Center(
+        child: CircularProgressIndicator(
+            color: Theme.of(context).colorScheme.secondary)) :
+    ContainerView(
       child: neighborhoodsList(context, parking),
     );
   }

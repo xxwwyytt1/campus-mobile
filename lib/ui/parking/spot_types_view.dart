@@ -1,36 +1,40 @@
 import 'package:campus_mobile_experimental/core/models/spot_types.dart';
-import 'package:campus_mobile_experimental/core/providers/parking.dart';
 import 'package:campus_mobile_experimental/ui/common/HexColor.dart';
 import 'package:campus_mobile_experimental/ui/common/container_view.dart';
 import 'package:flutter/material.dart';
+import 'package:flutter_hooks/flutter_hooks.dart';
+import 'package:fquery/fquery.dart';
 import 'package:provider/provider.dart';
+import '../../core/hooks/parking_query.dart';
+import '../../core/models/parking.dart';
+import '../../core/providers/user.dart';
 
-class SpotTypesView extends StatefulWidget {
-  @override
-  _SpotTypesViewState createState() => _SpotTypesViewState();
-}
-
-class _SpotTypesViewState extends State<SpotTypesView> {
-  late ParkingDataProvider spotTypesDataProvider;
+class SpotTypesView extends HookWidget  {
   @override
   Widget build(BuildContext context) {
-    spotTypesDataProvider = Provider.of<ParkingDataProvider>(context);
-    return ContainerView(
-      child: createListWidget(context),
+    final parkingSpots = useFetchSpotTypesModel();
+    final userDataProvider = useMemoized(() {
+      debugPrint("Memoized UserDataProvider!");
+      return Provider.of<UserDataProvider>(context);
+    }, [context]);
+    useListenable(userDataProvider);
+    return parkingSpots.isFetching? Center(
+        child: CircularProgressIndicator(
+            color: Theme.of(context).colorScheme.secondary)) :
+    ContainerView(
+      child: createListWidget(context, parkingSpots, userDataProvider),
     );
   }
 
-  Widget createListWidget(BuildContext context) {
-    return ListView(children: createList(context));
+  Widget createListWidget(BuildContext context, UseQueryResult parkingSpots, UserDataProvider userDataProvider) {
+    return ListView(children: createList(context, parkingSpots, userDataProvider));
   }
 
-  List<Widget> createList(BuildContext context) {
+  List<Widget> createList(BuildContext context, UseQueryResult parkingSpots, UserDataProvider userDataProvider) {
     int selectedSpots = 0;
     List<Widget> list = [];
-    for (Spot data in spotTypesDataProvider.spotTypeModel!.spots!) {
-      if (Provider.of<ParkingDataProvider>(context)
-              .spotTypesState![data.spotKey]! ==
-          true) {
+    for (Spot data in parkingSpots.data!) {
+      if (userDataProvider.userProfileModel!.isParkingSpotEnabled(data.spotKey!)) {
         selectedSpots++;
       }
       Color iconColor = HexColor(data.color!);
@@ -56,11 +60,22 @@ class _SpotTypesViewState extends State<SpotTypesView> {
                       ))),
         title: Text(data.name!),
         trailing: Switch(
-          value: Provider.of<ParkingDataProvider>(context)
-              .spotTypesState![data.spotKey]!,
+          value: userDataProvider.userProfileModel!.isParkingSpotEnabled(data.spotKey!),
           onChanged: (_) {
-            spotTypesDataProvider.toggleSpotSelection(
-                data.spotKey, selectedSpots);
+            //  only allow select if doesn't exceed maximum allowed
+            // if (userDataProvider.userProfileModel!.isParkingSpotEnabled(data.spotKey!)
+            //     || (!userDataProvider.userProfileModel!.isParkingSpotEnabled(data.spotKey!) && selectedSpots < ParkingModel.MAX_SELECTED_SPOTS)) {
+            //   selectedSpots = selectedSpots + (userDataProvider.userProfileModel!.isParkingSpotEnabled(data.spotKey!) ? -1 : 1);
+            //   // sync with user data provider
+            //   if (userDataProvider.userProfileModel!.isParkingSpotEnabled(data.spotKey!)) {
+            //   //  disable the parking spot -> put spotKey into map
+            //     userDataProvider.userProfileModel!.disabledParkingSpots![data.spotKey!] = true;
+            //   } else {
+            //     // enable the parking spot -> delete spotKey from map
+            //     userDataProvider.userProfileModel!.disabledParkingSpots!.remove(data.spotKey!);
+            //   }
+            //   userDataProvider.postUserProfile(userDataProvider.userProfileModel);
+            // }
           },
           // activeColor: Theme.of(context).buttonColor,
           activeColor: Theme.of(context).backgroundColor,

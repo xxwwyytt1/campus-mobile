@@ -21,8 +21,10 @@ class NeighborhoodLotsView extends HookWidget  {
       return Provider.of<UserDataProvider>(context);
     }, [context]);
     useListenable(userDataProvider);
-    
-    return ContainerView(
+    return parking.isFetching? Center(
+        child: CircularProgressIndicator(
+            color: Theme.of(context).colorScheme.secondary)) :
+    ContainerView(
       child: lotsList(context, args, parking, userDataProvider),
     );
   }
@@ -71,19 +73,28 @@ class NeighborhoodLotsView extends HookWidget  {
           onTap: () {
             if (selectedLots == 10 && !lotState && !showedScaffold.value) {
               ScaffoldMessenger.of(context).showSnackBar(SnackBar(
-              content: Text(
-                  'You have reached the maximum number of lots (10) that can be selected. You need to deselect some lots before you can add any more.'),
-              duration: Duration(seconds: 5),
-            ));
-            showedScaffold.value = !showedScaffold.value;
-          }
-          //  only allow select if doesn't exceed maximum allowed
-          if (lotState
-              || (!lotState && selectedLots < ParkingModel.MAX_SELECTED_LOTS)) {
-            selectedLots = selectedLots + (lotState ? -1 : 1);
-            userDataProvider.userProfileModel!.disabledParkingLots![arguments[i]] = !(userDataProvider.userProfileModel!.disabledParkingLots![arguments[i]]!);
-            userDataProvider.postUserProfile(userDataProvider.userProfileModel);
-          }
+                content: Text(
+                    'You have reached the maximum number of lots (10) that can be selected. You need to deselect some lots before you can add any more.'),
+                duration: Duration(seconds: 5),
+              ));
+              showedScaffold.value = !showedScaffold.value;
+            }
+            debugPrint(userDataProvider.userProfileModel!.disabledParkingLots!.toString());
+            //  only allow select if doesn't exceed maximum allowed
+            if (lotState
+                || (!lotState && selectedLots < ParkingModel.MAX_SELECTED_LOTS)) {
+              selectedLots = selectedLots + (lotState ? -1 : 1);
+              // sync with user data provider
+              if (lotState) {
+                //  disable the parking -> put parking lot into map
+                userDataProvider.userProfileModel!.disabledParkingLots!.add(arguments[i]);
+              } else {
+                // enable the parking -> delete parking lot from map
+                userDataProvider.userProfileModel!.disabledParkingLots!.remove(arguments[i]);
+              }
+              // userDataProvider.userProfileModel!.disabledParkingLots![arguments[i]] = !(userDataProvider.userProfileModel!.disabledParkingLots![arguments[i]]!);
+              userDataProvider.postUserProfile(userDataProvider.userProfileModel);
+            }
           },
         ),
       );
@@ -98,6 +109,7 @@ class NeighborhoodLotsView extends HookWidget  {
       children: ListTile.divideTiles(tiles: list, context: context).toList(),
     );
   }
+
 }
 
 Color colorFromHex(String hexColor) {
