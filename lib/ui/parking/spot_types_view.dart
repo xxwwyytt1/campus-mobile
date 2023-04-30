@@ -3,13 +3,12 @@ import 'package:campus_mobile_experimental/ui/common/HexColor.dart';
 import 'package:campus_mobile_experimental/ui/common/container_view.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_hooks/flutter_hooks.dart';
-import 'package:fquery/fquery.dart';
 import 'package:provider/provider.dart';
 import '../../core/hooks/parking_query.dart';
-import '../../core/models/parking.dart';
 import '../../core/providers/user.dart';
 
-class SpotTypesView extends HookWidget  {
+class SpotTypesView extends HookWidget
+{
   @override
   Widget build(BuildContext context) {
     final parkingSpots = useFetchSpotTypesModel();
@@ -18,22 +17,27 @@ class SpotTypesView extends HookWidget  {
       return Provider.of<UserDataProvider>(context);
     }, [context]);
     useListenable(userDataProvider);
-    return parkingSpots.isFetching? Center(
-        child: CircularProgressIndicator(
-            color: Theme.of(context).colorScheme.secondary)) :
-    ContainerView(
-      child: createListWidget(context, parkingSpots, userDataProvider),
+
+    if (parkingSpots.isLoading || parkingSpots.isFetching)
+      return Center(
+          child: CircularProgressIndicator(
+              color: Theme.of(context).colorScheme.secondary
+          )
+      );
+
+    return ContainerView(
+      child: createListWidget(context, parkingSpots.data!, userDataProvider),
     );
   }
 
-  Widget createListWidget(BuildContext context, UseQueryResult parkingSpots, UserDataProvider userDataProvider) {
+  Widget createListWidget(BuildContext context, List<Spot> parkingSpots, UserDataProvider userDataProvider) {
     return ListView(children: createList(context, parkingSpots, userDataProvider));
   }
 
-  List<Widget> createList(BuildContext context, UseQueryResult parkingSpots, UserDataProvider userDataProvider) {
+  List<Widget> createList(BuildContext context, List<Spot> parkingSpots, UserDataProvider userDataProvider) {
     int selectedSpots = 0;
     List<Widget> list = [];
-    for (Spot data in parkingSpots.data!) {
+    for (Spot data in parkingSpots) {
       if (userDataProvider.userProfileModel!.isParkingSpotEnabled(data.spotKey!)) {
         selectedSpots++;
       }
@@ -57,11 +61,14 @@ class SpotTypesView extends HookWidget  {
                     : Text(
                         data.spotKey!.contains("SR") ? "RS" : data.text!,
                         style: TextStyle(color: textColor),
-                      ))),
+                      )
+            )
+        ),
         title: Text(data.name!),
         trailing: Switch(
           value: userDataProvider.userProfileModel!.isParkingSpotEnabled(data.spotKey!),
           onChanged: (_) {
+            // TODO: fix this logic!
             //  only allow select if doesn't exceed maximum allowed
             // if (userDataProvider.userProfileModel!.isParkingSpotEnabled(data.spotKey!)
             //     || (!userDataProvider.userProfileModel!.isParkingSpotEnabled(data.spotKey!) && selectedSpots < ParkingModel.MAX_SELECTED_SPOTS)) {
@@ -85,7 +92,7 @@ class SpotTypesView extends HookWidget  {
     return list;
   }
 
-  Color colorFromHex(String hexColor) {
+  static Color colorFromHex(String hexColor) {
     final hexCode = hexColor.replaceAll('#', '');
     if (hexColor.length == 6) {
       hexColor =

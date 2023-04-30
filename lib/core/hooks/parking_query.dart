@@ -6,8 +6,6 @@ import 'package:fquery/fquery.dart';
 
 import '../../app_networking.dart';
 import '../models/spot_types.dart';
-import '../providers/user.dart';
-
 
 UseQueryResult<List<ParkingModel>, dynamic> useFetchParkingModels()
 {
@@ -30,7 +28,7 @@ UseQueryResult<List<ParkingModel>, dynamic> useFetchParkingModels()
   });
 }
 
-UseQueryResult<List<Spot>?, dynamic> useFetchSpotTypesModel()
+UseQueryResult<List<Spot>, dynamic> useFetchSpotTypesModel()
 {
   // TODO: implement the logic for refreshing access token as needed
   return useQuery(['spot'], () async {

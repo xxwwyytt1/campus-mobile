@@ -130,12 +130,10 @@ class UserProfileModel extends HiveObject {
       };
 
   // DATA OPERATION FUNCTIONS
-  bool isOccuspaceLocationDisabled(String name) => disabledOccuspaceLocations!.contains(name);
-  // TODO: test these to make sure it works
-  // TODO: this doesn't work, not in disabledParkingLots could be true/false depending on if it's default
-  bool isParkingLotDisabled(String name) => disabledParkingLots!.contains(name);
+  bool isOccuspaceLocationDisabled(String name) => disabledOccuspaceLocations?.contains(name) ?? false;
+  bool isParkingLotDisabled(String name) => disabledParkingLots?.contains(name) ?? false;
   bool isParkingLotEnabled(String name) => !isParkingLotDisabled(name);
-  bool isParkingSpotDisabled(String name) => disabledParkingSpots!.contains(name);
+  bool isParkingSpotDisabled(String name) => disabledParkingSpots?.contains(name) ?? false;
   bool isParkingSpotEnabled(String name) => !isParkingSpotDisabled(name);
 }
 

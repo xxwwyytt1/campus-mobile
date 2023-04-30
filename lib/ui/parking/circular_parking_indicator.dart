@@ -2,7 +2,6 @@ import 'package:campus_mobile_experimental/core/models/parking.dart';
 import 'package:campus_mobile_experimental/core/models/spot_types.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_hooks/flutter_hooks.dart';
-import 'package:fquery/fquery.dart';
 import 'package:percent_indicator/percent_indicator.dart';
 import 'package:provider/provider.dart';
 
@@ -28,27 +27,32 @@ class CircularParkingIndicators extends HookWidget {
     final parkingSpots = useFetchSpotTypesModel();
     final parking = useFetchParkingModels();
 
-    return (parking.isFetching || parkingSpots.isFetching)? Center(
-        child: CircularProgressIndicator(
-            color: Theme.of(context).colorScheme.secondary)) : Column(
+    if (parking.isLoading || parkingSpots.isLoading)
+      return Center(
+          child: CircularProgressIndicator(
+              color: Theme.of(context).colorScheme.secondary
+          )
+      );
+
+    return Column(
       children: [
         buildLocationTitle(),
         buildLocationContext(context),
-        buildSpotsAvailableText(context, parking),
+        buildSpotsAvailableText(context, parking.data),
         buildHistoricInfo(),
-        buildAllParkingAvailability(context, parkingSpots, userDataProvider),
+        buildAllParkingAvailability(context, parkingSpots.data!, userDataProvider),
       ],
     );
   }
 
-  Widget buildAllParkingAvailability(BuildContext context, UseQueryResult parkingSpots, UserDataProvider userDataProvider) {
+  Widget buildAllParkingAvailability(BuildContext context, List<Spot> parkingSpots, UserDataProvider userDataProvider) {
     List<Widget> listOfCircularParkingInfo = [];
 
     List<String> selectedSpots = [];
 
     // find 3 displayable parking spots
-    parkingSpots.data.forEach((Spot spot) {
-      if (selectedSpots.length < 4
+    parkingSpots.forEach((Spot spot) {
+      if (selectedSpots.length < 3
           && userDataProvider.userProfileModel!.isParkingSpotEnabled(spot.spotKey!)) {
         selectedSpots.add(spot.spotKey!);
       }
@@ -56,7 +60,7 @@ class CircularParkingIndicators extends HookWidget {
     // find spot according to the spot key
     int found = 0;
     Map<String, Spot> spotMap = Map<String, Spot>();
-    for (Spot spot in parkingSpots.data) {
+    for (Spot spot in parkingSpots) {
       if (found == 3) {
         break;
       }
@@ -275,40 +279,45 @@ class CircularParkingIndicators extends HookWidget {
 
   /// Returns the total number of spots open at a given location
   /// does not filter based on spot type
-  Map<String, num> getApproxNumOfOpenSpots(String? locationId, UseQueryResult parking) {
-    Map<String, ParkingModel> _parkingModels = Map<String, ParkingModel>.fromIterable(parking.data,
+  Map<String, num> getApproxNumOfOpenSpots(String? locationId, List<ParkingModel> parking) {
+    //TODO: rewrite this entire function!
+    Map<String, ParkingModel> _parkingModels = Map<String, ParkingModel>.fromIterable(parking,
         key: (parkingModel) => parkingModel.locationName!,
         value: (parkingModel) => parkingModel);
     Map<String, num> totalAndOpenSpots = {"Open": 0, "Total": 0};
-    if (_parkingModels![locationId] != null &&
-        _parkingModels![locationId]!.availability != null) {
-      for (dynamic spot in _parkingModels![locationId]!.availability!.keys) {
-        if (_parkingModels![locationId]!.availability![spot]['Open'] != null &&
-            _parkingModels![locationId]!.availability![spot]['Open'] != "") {
+    if (_parkingModels[locationId] != null &&
+        _parkingModels[locationId]!.availability != null) {
+      for (dynamic spot in _parkingModels[locationId]!.availability!.keys) {
+        if (_parkingModels[locationId]!.availability![spot]['Open'] != null &&
+            _parkingModels[locationId]!.availability![spot]['Open'] != "") {
           totalAndOpenSpots["Open"] = totalAndOpenSpots["Open"]! +
-              (_parkingModels![locationId]!.availability![spot]['Open']
+              (_parkingModels[locationId]!.availability![spot]['Open']
               is String
                   ? int.parse(
-                  _parkingModels![locationId]!.availability![spot]['Open'])
-                  : _parkingModels![locationId]!.availability![spot]['Open']);
+                  _parkingModels[locationId]!.availability![spot]['Open'])
+                  : _parkingModels[locationId]!.availability![spot]['Open']);
         }
 
-        if (_parkingModels![locationId]!.availability![spot]['Total'] != null &&
-            _parkingModels![locationId]!.availability![spot]['Total'] != "") {
+        if (_parkingModels[locationId]!.availability![spot]['Total'] != null &&
+            _parkingModels[locationId]!.availability![spot]['Total'] != "") {
           totalAndOpenSpots["Total"] = totalAndOpenSpots["Total"]! +
-              (_parkingModels![locationId]!.availability![spot]['Total']
+              (_parkingModels[locationId]!.availability![spot]['Total']
               is String
                   ? int.parse(
-                  _parkingModels![locationId]!.availability![spot]['Total'])
-                  : _parkingModels![locationId]!.availability![spot]['Total']);
+                  _parkingModels[locationId]!.availability![spot]['Total'])
+                  : _parkingModels[locationId]!.availability![spot]['Total']);
         }
       }
     }
     return totalAndOpenSpots;
   }
 
-  Widget buildSpotsAvailableText(BuildContext context, UseQueryResult parking) {
-    return parking.isFetching ? Text("") : Center(
+  // TODO: rearchitect this function
+  Widget buildSpotsAvailableText(BuildContext context, List<ParkingModel>? parking) {
+    if (parking == null)
+      return Text("");
+
+    return Center(
       child: Text("~" +
           getApproxNumOfOpenSpots(model.locationName, parking)["Open"]
               .toString() +
