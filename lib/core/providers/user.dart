@@ -11,6 +11,8 @@ import 'package:firebase_analytics/firebase_analytics.dart';
 import 'package:flutter/material.dart';
 import 'package:hive/hive.dart';
 
+//can delete authentication related functions after finishing authentication query file to test
+//authentication provider is lumped into this file
 class UserDataProvider extends ChangeNotifier {
   UserDataProvider() {
     ///DEFAULT STATES
@@ -43,7 +45,7 @@ class UserDataProvider extends ChangeNotifier {
 
   void toggleOccuspaceLocation(String location)
   {
-    // try to remove user's selected occuspace location
+    // try to remove user's selected Occuspace location
     // add it in if it does not exist
     if(!userProfileModel!.disabledOccuspaceLocations!.remove(location))
       userProfileModel!.disabledOccuspaceLocations!.add(location);
@@ -116,77 +118,77 @@ class UserDataProvider extends ChangeNotifier {
     notifyListeners();
   }
 
-  /// Authenticate a user given an username and password
-  /// Upon logging in we should make sure that users has an account
-  /// If the user doesn't have an account one will be made by invoking [_createNewUser]
-  Future manualLogin(String username, String password) async {
-    _error = null;
-    _isLoading = true;
-    notifyListeners();
-
-    if (username.isNotEmpty && password.isNotEmpty) {
-      encryptAndSaveCredentials(username, password);
-
-      if (await silentLogin()) {
-        if (_userProfileModel!.classifications!.student!) {
-          _cardsDataProvider!.showAllStudentCards();
-        } else if (_userProfileModel!.classifications!.staff!) {
-          _cardsDataProvider!.showAllStaffCards();
-        }
-        _isLoading = false;
-        notifyListeners();
-        return true;
-      } else {
-        _error = _authenticationService.error;
-        _isLoading = false;
-        notifyListeners();
-        return false;
-      }
-    }
-
-    _error = 'Username or password not found';
-    _isLoading = false;
-    notifyListeners();
-    return false;
-  }
-
-  /// Logs user in with saved credentials on device
-  /// If this login mechanism fails then the user is logged out
-  Future<bool> silentLogin() async {
-    _isInSilentLogin = true;
-    notifyListeners();
-
-    String? username = await getUsernameFromDevice();
-    String? encryptedPassword = await getEncryptedPasswordFromDevice();
-
-    /// Allow silentLogin if username, pw are set, and the user is not logged in
-    if (username != null && encryptedPassword != null) {
-      final String base64EncodedWithEncryptedPassword =
-          base64.encode(utf8.encode(username + ':' + encryptedPassword));
-
-      if (await _authenticationService
-          .silentLogin(base64EncodedWithEncryptedPassword)) {
-        await updateAuthenticationModel(_authenticationService.data);
-
-        await fetchUserProfile();
-
-        CardsDataProvider _cardsDataProvider = CardsDataProvider();
-        _cardsDataProvider
-            .updateAvailableCards(_userProfileModel!.ucsdaffiliation);
-
-        _subscribeToPushNotificationTopics(userProfileModel!.subscribedTopics!);
-        _pushNotificationDataProvider
-            .registerDevice(_authenticationService.data!.accessToken);
-        await FirebaseAnalytics().logEvent(name: 'loggedIn');
-        _isInSilentLogin = false;
-        notifyListeners();
-        return true;
-      }
-    }
-
-    logout();
-    return false;
-  }
+  // /// Authenticate a user given an username and password
+  // /// Upon logging in we should make sure that users has an account
+  // /// If the user doesn't have an account one will be made by invoking [_createNewUser]
+  // Future manualLogin(String username, String password) async {
+  //   _error = null;
+  //   _isLoading = true;
+  //   notifyListeners();
+  //
+  //   if (username.isNotEmpty && password.isNotEmpty) {
+  //     encryptAndSaveCredentials(username, password);
+  //
+  //     if (await silentLogin()) {
+  //       if (_userProfileModel!.classifications!.student!) {
+  //         _cardsDataProvider!.showAllStudentCards();
+  //       } else if (_userProfileModel!.classifications!.staff!) {
+  //         _cardsDataProvider!.showAllStaffCards();
+  //       }
+  //       _isLoading = false;
+  //       notifyListeners();
+  //       return true;
+  //     } else {
+  //       _error = _authenticationService.error;
+  //       _isLoading = false;
+  //       notifyListeners();
+  //       return false;
+  //     }
+  //   }
+  //
+  //   _error = 'Username or password not found';
+  //   _isLoading = false;
+  //   notifyListeners();
+  //   return false;
+  // }
+  //
+  // /// Logs user in with saved credentials on device
+  // /// If this login mechanism fails then the user is logged out
+  // Future<bool> silentLogin() async {
+  //   _isInSilentLogin = true;
+  //   notifyListeners();
+  //
+  //   String? username = await getUsernameFromDevice();
+  //   String? encryptedPassword = await getEncryptedPasswordFromDevice();
+  //
+  //   /// Allow silentLogin if username, pw are set, and the user is not logged in
+  //   if (username != null && encryptedPassword != null) {
+  //     final String base64EncodedWithEncryptedPassword =
+  //         base64.encode(utf8.encode(username + ':' + encryptedPassword));
+  //
+  //     if (await _authenticationService
+  //         .login(base64EncodedWithEncryptedPassword)) {
+  //       await updateAuthenticationModel(_authenticationService.data);
+  //
+  //       await fetchUserProfile();
+  //
+  //       CardsDataProvider _cardsDataProvider = CardsDataProvider();
+  //       _cardsDataProvider
+  //           .updateAvailableCards(_userProfileModel!.ucsdaffiliation);
+  //
+  //       _subscribeToPushNotificationTopics(userProfileModel!.subscribedTopics!);
+  //       _pushNotificationDataProvider
+  //           .registerDevice(_authenticationService.data!.accessToken);
+  //       await FirebaseAnalytics().logEvent(name: 'loggedIn');
+  //       _isInSilentLogin = false;
+  //       notifyListeners();
+  //       return true;
+  //     }
+  //   }
+  //
+  //   logout();
+  //   return false;
+  // }
 
   /// Logs out user
   /// Unregisters device from direct push notification using [_pushNotificationDataProvider]

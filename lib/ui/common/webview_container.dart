@@ -7,11 +7,12 @@ import 'package:campus_mobile_experimental/core/providers/user.dart';
 import 'package:campus_mobile_experimental/core/utils/webview.dart';
 import 'package:campus_mobile_experimental/ui/navigator/top.dart';
 import 'package:flutter/material.dart';
+import 'package:flutter_hooks/flutter_hooks.dart';
 import 'package:provider/provider.dart';
 import 'package:webview_flutter/webview_flutter.dart';
 
-class WebViewContainer extends StatefulWidget {
-  const WebViewContainer({
+class WebViewContainer extends HookWidget  {
+  WebViewContainer({
     Key? key,
     required this.titleText,
     required this.initialUrl,
@@ -32,39 +33,35 @@ class WebViewContainer extends StatefulWidget {
   final Map<String, Function>? overFlowMenu;
   final bool? hideMenu;
   final List<Widget>? actionButtons;
-
-  @override
-  _WebViewContainerState createState() => _WebViewContainerState();
-}
-
-class _WebViewContainerState extends State<WebViewContainer>
-    with AutomaticKeepAliveClientMixin {
-  bool get wantKeepAlive => true;
+  //bool get wantKeepAlive => true;
   late UserDataProvider _userDataProvider;
   WebViewController? _webViewController;
-  double _contentHeight = cardContentMinHeight;
+  late ValueNotifier<double> _contentHeight;
   bool? active;
-  Function? hide;
+  late Function hide;
   String? webCardUrl;
 
-  @override
-  void initState() {
-    super.initState();
-    hide = () => Provider.of<CardsDataProvider>(context, listen: false)
-        .toggleCard(widget.cardId);
-  }
+  // @override
+  // void initState() {
+  //   super.initState();
+  //   hide =
+  // }
 
   @override
   Widget build(BuildContext context) {
-    active = Provider.of<CardsDataProvider>(context).cardStates![widget.cardId];
+    useAutomaticKeepAlive();
+
+    _contentHeight = useState(cardContentMinHeight);
+    hide = () => Provider.of<CardsDataProvider>(context, listen: false).toggleCard(cardId);
+    active = Provider.of<CardsDataProvider>(context).cardStates![cardId];
 
     // check if this webCard needs an auth token
-    if (widget.requireAuth!) {
+    if (requireAuth!) {
       _userDataProvider = Provider.of<UserDataProvider>(context);
-      webCardUrl = widget.initialUrl! +
+      webCardUrl = initialUrl! +
           "?expiration=${_userDataProvider.authenticationModel!.expiration}#${_userDataProvider.authenticationModel!.accessToken}";
     } else {
-      webCardUrl = widget.initialUrl;
+      webCardUrl = initialUrl;
     }
 
     checkWebURL();
@@ -82,7 +79,7 @@ class _WebViewContainerState extends State<WebViewContainer>
                   top: 0.0, right: 6.0, bottom: 0.0, left: 12.0),
               visualDensity: VisualDensity(horizontal: 0, vertical: 0),
               title: Text(
-                widget.titleText!,
+               titleText!,
                 style: TextStyle(
                   color: Colors.grey,
                   fontSize: 18.0,
@@ -93,9 +90,9 @@ class _WebViewContainerState extends State<WebViewContainer>
             buildBody(context),
             Padding(
               padding: const EdgeInsets.symmetric(horizontal: 0),
-              child: widget.actionButtons != null
+              child: actionButtons != null
                   ? Row(
-                      children: widget.actionButtons!,
+                      children: actionButtons!,
                     )
                   : Container(),
             ),
@@ -110,7 +107,7 @@ class _WebViewContainerState extends State<WebViewContainer>
   Widget buildBody(context) {
     print('webview_container:buildBody: ' + webCardUrl!);
     return Container(
-      height: _contentHeight,
+      height: _contentHeight.value,
       child: WebView(
         javascriptMode: JavascriptMode.unrestricted,
         initialUrl: webCardUrl,
@@ -130,7 +127,7 @@ class _WebViewContainerState extends State<WebViewContainer>
   }
 
   Widget? buildMenu() {
-    if (widget.hideMenu ?? false) {
+    if (hideMenu ?? false) {
       return Container();
     }
     return ButtonBar(
@@ -200,10 +197,7 @@ class _WebViewContainerState extends State<WebViewContainer>
     return JavascriptChannel(
       name: 'SetHeight',
       onMessageReceived: (JavascriptMessage message) {
-        setState(() {
-          _contentHeight =
-              validateHeight(context, double.tryParse(message.message));
-        });
+        _contentHeight.value = validateHeight(context, double.tryParse(message.message));
       },
     );
   }
