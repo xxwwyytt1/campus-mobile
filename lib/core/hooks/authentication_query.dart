@@ -16,8 +16,21 @@ import '../services/authentication.dart';
 import '../services/user.dart';
 import '../utils/user_credentials.dart';
 
-AuthenticationModel? _authenticationModel;
-DateTime? _lastUpdated;
+// GLOBAL DATA SOURCE: "the user profile model", stored in the Hive database (NoSQL)
+//
+// useFetchUserProfileModel() -> UserProfileModel?
+// isLoggedIn() -> bool
+//
+// _fetchUserProfileFromNetwork(String base64EncodedWithEncryptedPassword) -> UserProfileModel
+// _saveUserProfile(UserProfileModel) -> void
+// _loadUserProfile() -> UserProfileModel?
+//
+// NOTE: if we are not using Hive for encryption, create an EncryptionHelper class
+// to handle encryption/decryption the way instead of copy/pasting everywhere
+//
+// [ x ] silentLogin() (delete this)
+// [ x ] manualLogin() (TENTATIVE: not sure yet, most likely)
+
 //if this function gets too long, split into 2 functions and can make one a private function by adding an underscore in the front
 UseQueryResult<AuthenticationModel?, dynamic> useFetchAuthenticationModel(String base64EncodedWithEncryptedPassword, String username, String password)
 {
@@ -46,11 +59,11 @@ UseQueryResult<AuthenticationModel?, dynamic> useFetchAuthenticationModel(String
 
         CardsDataProvider _cardsDataProvider = CardsDataProvider();
         _cardsDataProvider
-            .updateAvailableCards(userProfileModel!.ucsdaffiliation);
+            .updateAvailableCards(userProfileModel.ucsdaffiliation);
 
         //subscribe to push notification provider
         PushNotificationDataProvider().unsubscribeFromAllTopics();
-        for (String? topic in userProfileModel!.subscribedTopics!) {
+        for (String? topic in userProfileModel.subscribedTopics!) {
           PushNotificationDataProvider().toggleNotificationsForTopic(topic);
         }
 
@@ -147,9 +160,13 @@ Future _fetchUserProfile() async {
   }
 }
 
-Future<UserProfileModel> _createNewUser(UserProfileModel profile) async {
+Future<UserProfileModel> _createNewUser() async
+{
+
+
   await PushNotificationDataProvider().fetchTopicsList();
   try {
+    UserProfileModel profile;
     profile.username = await getUsernameFromDevice();
     profile.ucsdaffiliation = _authenticationModel!.ucsdaffiliation;
     profile.pid = _authenticationModel!.pid;
@@ -176,6 +193,7 @@ Future<UserProfileModel> _createNewUser(UserProfileModel profile) async {
     }
   } catch (e) {
     print(e.toString());
+    rethrow;
   }
   return profile;
 }

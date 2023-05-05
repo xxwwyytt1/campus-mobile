@@ -24,10 +24,10 @@ class WebViewContainer extends HookWidget  {
   }) : super(key: key);
 
   /// required parameters
-  final String? titleText;
-  final String? initialUrl;
+  final String titleText;
+  final String initialUrl;
   final String cardId;
-  final bool? requireAuth;
+  final bool requireAuth;
 
   /// optional parameters
   final Map<String, Function>? overFlowMenu;
@@ -53,12 +53,16 @@ class WebViewContainer extends HookWidget  {
 
     _contentHeight = useState(cardContentMinHeight);
     hide = () => Provider.of<CardsDataProvider>(context, listen: false).toggleCard(cardId);
-    active = Provider.of<CardsDataProvider>(context).cardStates![cardId];
+    active = useMemoized(() =>
+      Provider.of<CardsDataProvider>(context).cardStates![cardId],
+    [context]);
 
     // check if this webCard needs an auth token
-    if (requireAuth!) {
-      _userDataProvider = Provider.of<UserDataProvider>(context);
-      webCardUrl = initialUrl! +
+    if (requireAuth) {
+      _userDataProvider = useMemoized(() =>
+          Provider.of<UserDataProvider>(context),
+      [context]);
+      webCardUrl = initialUrl +
           "?expiration=${_userDataProvider.authenticationModel!.expiration}#${_userDataProvider.authenticationModel!.accessToken}";
     } else {
       webCardUrl = initialUrl;
@@ -66,7 +70,7 @@ class WebViewContainer extends HookWidget  {
 
     checkWebURL();
 
-    if (active != null && active!) {
+    if (active != null/* && active!*/) {
       return Card(
         margin: EdgeInsets.only(
             top: 0.0, right: 0.0, bottom: cardMargin * 1.5, left: 0.0),
@@ -79,13 +83,13 @@ class WebViewContainer extends HookWidget  {
                   top: 0.0, right: 6.0, bottom: 0.0, left: 12.0),
               visualDensity: VisualDensity(horizontal: 0, vertical: 0),
               title: Text(
-               titleText!,
+               titleText,
                 style: TextStyle(
                   color: Colors.grey,
                   fontSize: 18.0,
                 ),
               ),
-              trailing: buildMenu()!,
+              trailing: buildMenu(),
             ),
             buildBody(context),
             Padding(
@@ -126,7 +130,7 @@ class WebViewContainer extends HookWidget  {
     );
   }
 
-  Widget? buildMenu() {
+  Widget buildMenu() {
     if (hideMenu ?? false) {
       return Container();
     }
@@ -172,7 +176,7 @@ class WebViewContainer extends HookWidget  {
         break;
       case CardMenuOptionConstants.hideCard:
         {
-          hide!();
+          hide();
         }
         break;
       default:
