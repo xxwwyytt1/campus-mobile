@@ -23,21 +23,15 @@ class ParkingCard extends HookWidget
     }, [context]);
     useListenable(userDataProvider);
 
-    final parking = useFetchParkingModels();
+    final parkingModels = useFetchParkingModels();
     final PageController _controller = usePageController();
 
-    // Map<String, Function> menuOption = {
-    //   "Manage Lots": (context) =>
-    //   {Navigator.pushNamed(context, RoutePaths.ManageParkingView)},
-    //   "Manage Spots": (context) =>
-    //   {Navigator.pushNamed(context, RoutePaths.SpotTypesView)}
-    // };
     return CardContainer(
       titleText: CardTitleConstants.titleMap[cardId],
-      isLoading: parking.isFetching || parking.isLoading,
-      reload: () => parking.refetch(),
-      errorText: parking.isError ? "" : null,
-      child: () => buildParkingCard(context, parking.data!, userDataProvider, _controller),
+      isLoading: parkingModels.isFetching,
+      reload: () => parkingModels.refetch(),
+      errorText: parkingModels.isError ? "" : null,
+      child: () => buildParkingCard(parkingModels.data!, userDataProvider, _controller),
       active: Provider.of<CardsDataProvider>(context).cardStates![cardId],
       hide: () => Provider.of<CardsDataProvider>(context, listen: false)
           .toggleCard(cardId),
@@ -45,12 +39,12 @@ class ParkingCard extends HookWidget
     );
   }
 
-  Widget buildParkingCard(BuildContext context, List<ParkingModel> parkingModels, UserDataProvider userDataProvider, PageController pc) {
+  Widget buildParkingCard(List<ParkingModel> parkingModels, UserDataProvider udp, PageController pc) {
     try{
       List<Widget> selectedLotsViews = [];
 
       for (ParkingModel model in parkingModels) {
-        if (userDataProvider.userProfileModel!.isParkingLotEnabled(model.locationName!)) {
+        if (udp.userProfileModel!.isParkingLotEnabled(model.locationName!)) {
           selectedLotsViews.add(CircularParkingIndicators(model: model));
         }
       }

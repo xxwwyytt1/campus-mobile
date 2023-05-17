@@ -5,6 +5,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter_hooks/flutter_hooks.dart';
 import 'package:provider/provider.dart';
 import '../../core/hooks/parking_query.dart';
+import '../../core/models/parking.dart';
 import '../../core/providers/user.dart';
 
 class SpotTypesView extends HookWidget
@@ -34,11 +35,11 @@ class SpotTypesView extends HookWidget
     return ListView(children: createList(context, parkingSpots, userDataProvider));
   }
 
-  List<Widget> createList(BuildContext context, List<Spot> parkingSpots, UserDataProvider userDataProvider) {
+  List<Widget> createList(BuildContext context, List<Spot> parkingSpots, UserDataProvider udp) {
     int selectedSpots = 0;
     List<Widget> list = [];
     for (Spot data in parkingSpots) {
-      if (userDataProvider.userProfileModel!.isParkingSpotEnabled(data.spotKey!)) {
+      if (udp.userProfileModel!.isParkingSpotEnabled(data.spotKey!)) {
         selectedSpots++;
       }
       Color iconColor = HexColor(data.color!);
@@ -66,23 +67,24 @@ class SpotTypesView extends HookWidget
         ),
         title: Text(data.name!),
         trailing: Switch(
-          value: userDataProvider.userProfileModel!.isParkingSpotEnabled(data.spotKey!),
+          value: udp.userProfileModel!.isParkingSpotEnabled(data.spotKey!),
           onChanged: (_) {
             // TODO: fix this logic!
-            //  only allow select if doesn't exceed maximum allowed
-            // if (userDataProvider.userProfileModel!.isParkingSpotEnabled(data.spotKey!)
-            //     || (!userDataProvider.userProfileModel!.isParkingSpotEnabled(data.spotKey!) && selectedSpots < ParkingModel.MAX_SELECTED_SPOTS)) {
-            //   selectedSpots = selectedSpots + (userDataProvider.userProfileModel!.isParkingSpotEnabled(data.spotKey!) ? -1 : 1);
-            //   // sync with user data provider
-            //   if (userDataProvider.userProfileModel!.isParkingSpotEnabled(data.spotKey!)) {
-            //   //  disable the parking spot -> put spotKey into map
-            //     userDataProvider.userProfileModel!.disabledParkingSpots![data.spotKey!] = true;
-            //   } else {
-            //     // enable the parking spot -> delete spotKey from map
-            //     userDataProvider.userProfileModel!.disabledParkingSpots!.remove(data.spotKey!);
-            //   }
-            //   userDataProvider.postUserProfile(userDataProvider.userProfileModel);
-            // }
+
+            // only allow select if doesn't exceed maximum allowed
+            if (udp.userProfileModel!.isParkingSpotEnabled(data.spotKey!)
+                || (!udp.userProfileModel!.isParkingSpotEnabled(data.spotKey!) && selectedSpots < ParkingModel.MAX_SELECTED_SPOTS)) {
+              selectedSpots = selectedSpots + (udp.userProfileModel!.isParkingSpotEnabled(data.spotKey!) ? -1 : 1);
+              // sync with user data provider
+              if (udp.userProfileModel!.isParkingSpotEnabled(data.spotKey!)) {
+              //  disable the parking spot -> put spotKey into map
+                udp.userProfileModel!.disabledParkingSpots!.add(data.spotKey!);
+              } else {
+                // enable the parking spot -> delete spotKey from map
+                udp.userProfileModel!.disabledParkingSpots!.remove(data.spotKey!);
+              }
+              udp.postUserProfile(udp.userProfileModel);
+            }
           },
           // activeColor: Theme.of(context).buttonColor,
           activeColor: Theme.of(context).backgroundColor,

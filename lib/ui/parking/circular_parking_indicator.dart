@@ -24,10 +24,9 @@ class CircularParkingIndicators extends HookWidget {
     }, [context]);
     useListenable(userDataProvider);
 
-    final parkingSpots = useFetchSpotTypesModel();
-    final parking = useFetchParkingModels();
+    final spotTypes = useFetchSpotTypesModel();
 
-    if (parking.isLoading || parkingSpots.isLoading)
+    if (spotTypes.isFetching)
       return Center(
           child: CircularProgressIndicator(
               color: Theme.of(context).colorScheme.secondary
@@ -37,80 +36,49 @@ class CircularParkingIndicators extends HookWidget {
     return Column(
       children: [
         buildLocationTitle(),
-        buildLocationContext(context),
-        buildSpotsAvailableText(context, parking.data),
+        buildLocationContext(),
+        buildSpotsAvailableText(spotTypes.data!),
         buildHistoricInfo(),
-        buildAllParkingAvailability(context, parkingSpots.data!, userDataProvider),
+        buildAllParkingAvailability(spotTypes.data!, userDataProvider),
       ],
     );
   }
 
-  Widget buildAllParkingAvailability(BuildContext context, List<Spot> parkingSpots, UserDataProvider userDataProvider) {
-    List<Widget> listOfCircularParkingInfo = [];
+  Widget buildAllParkingAvailability(List<Spot> spotTypes, UserDataProvider udp) {
+    // Get 3 displayable parking spots
+    List<Widget> displayableSpotWidgetsList = spotTypes
+        .where((spot) => udp.userProfileModel!.isParkingSpotEnabled(spot.spotKey!))
+        .take(3)
+        .map((spot) =>
+          buildParkingInfoOrShowCircularProgress(
+              spot, model.availability![spot.spotKey!]))
+        .toList();
 
-    List<String> selectedSpots = [];
-
-    // find 3 displayable parking spots
-    parkingSpots.forEach((Spot spot) {
-      if (selectedSpots.length < 3
-          && userDataProvider.userProfileModel!.isParkingSpotEnabled(spot.spotKey!)) {
-        selectedSpots.add(spot.spotKey!);
-      }
-    });
-    // find spot according to the spot key
-    int found = 0;
-    Map<String, Spot> spotMap = Map<String, Spot>();
-    for (Spot spot in parkingSpots) {
-      if (found == 3) {
-        break;
-      }
-      for (String spotKey in selectedSpots) {
-        if (spotKey == spot.spotKey!) {
-          spotMap[spotKey] = spot;
-          found++;
-          break;
-        }
-      }
-    }
-    for (String spot in selectedSpots) {
-      if (model.availability != null) {
-        listOfCircularParkingInfo.add(buildCircularParkingInfo(
-            spotMap[spot],
-            model.availability![spot],
-            context));
-      }
-    }
     return Expanded(
       child: Row(
         mainAxisAlignment: MainAxisAlignment.center,
-        children: listOfCircularParkingInfo,
+        children: displayableSpotWidgetsList,
       ),
     );
   }
 
-  Widget buildCircularParkingInfo(
-      Spot? spotType, dynamic locationData, BuildContext context) {
-    int open;
-    int total;
+  Widget buildParkingInfoOrShowCircularProgress(Spot spot, Map<String, int>? locationData)
+  {
+    int open = 0, total = 0;
+    double percent = 0.0;
+    String displayText = "N/A";
+
     if (locationData != null) {
-      if (locationData["Open"] is String) {
-        open = locationData["Open"] == "" ? 0 : int.parse(locationData["Open"]);
-      } else {
-        open = locationData["Open"] == null ? 0 : locationData["Open"];
-      }
-      if (locationData["Total"] is String) {
-        total =
-        locationData["Total"] == "" ? 0 : int.parse(locationData["Total"]);
-      } else {
-        total = locationData["Total"] == null ? 0 : locationData["Total"];
-      }
-    } else {
-      open = 0;
-      total = 0;
+        open = locationData["Open"]!;
+        total = locationData["Total"]!;
+
+        if (total > 0)
+          percent = open / total;
+
+        displayText = (percent * 100).round().toString() + "%";
     }
 
-    return locationData != null
-        ? Expanded(
+    return Expanded(
       child: Column(
         mainAxisAlignment: MainAxisAlignment.center,
         children: <Widget>[
@@ -125,13 +93,14 @@ class CircularParkingIndicators extends HookWidget {
                     width: 75,
                     child: CircularPercentIndicator(
                       radius: 37,
-                      animation: true,
+                      animation: locationData != null,
                       animationDuration: 1000,
                       lineWidth: 7.5,
-                      percent: open / total,
+                      percent: percent,
                       center: Text(
-                          ((open / total) * 100).round().toString() + "%",
-                          style: TextStyle(fontSize: 22)),
+                        displayText,
+                        style: TextStyle(fontSize: 22),
+                      ),
                       circularStrokeCap: CircularStrokeCap.round,
                       backgroundColor: colorFromHex('#EDECEC'),
                       progressColor: getColor(open / total),
@@ -143,81 +112,29 @@ class CircularParkingIndicators extends HookWidget {
           ),
           Padding(
             padding: EdgeInsets.all(8.0),
-            child: spotType != null
-                ? CircleAvatar(
-              backgroundColor: colorFromHex(spotType.color!),
-              child: spotType.text!.contains("&#x267f;")
-                  ? Icon(
-                Icons.accessible,
-                size: 25.0,
-                color: colorFromHex(spotType.textColor!),
-              )
-                  : Text(
-                spotType.spotKey!.contains("SR")
-                    ? "RS"
-                    : spotType.text!,
-                style: TextStyle(
-                  color: colorFromHex(spotType.textColor!),
-                ),
-              ),
-            )
-                : Container(),
-          )
-        ],
-      ),
-    )
-        : Expanded(
-      child: Column(
-        mainAxisAlignment: MainAxisAlignment.center,
-        children: <Widget>[
-          Padding(
-            padding: const EdgeInsets.all(16.0),
-            child: Stack(
-              alignment: Alignment.center,
-              children: [
-                Center(
-                  child: SizedBox(
-                    height: 75,
-                    width: 75,
-                    child: CircularPercentIndicator(
-                      radius: 37,
-                      animation: false,
-                      lineWidth: 7.5,
-                      percent: 0.0,
-                      center: Text("N/A", style: TextStyle(fontSize: 22)),
-                      backgroundColor: colorFromHex('#EDECEC'),
-                    ),
+            child:
+                CircleAvatar(
+                  backgroundColor: colorFromHex(spot.color!),
+                  child: spot.text!.contains("&#x267f;")
+                    ? Icon(
+                        Icons.accessible,
+                        size: 25.0,
+                        color: colorFromHex(spot.textColor!),
+                      )
+                      : Text(
+                        spot.spotKey!.contains("SR") ? "RS" : spot.text!,
+                        style: TextStyle(
+                          color: colorFromHex(spot.textColor!),
+                      ),
                   ),
-                ),
-              ],
-            ),
-          ),
-          Padding(
-            padding: EdgeInsets.all(8.0),
-            child: spotType != null
-                ? CircleAvatar(
-              backgroundColor: colorFromHex(spotType.color!),
-              child: spotType.text!.contains("&#x267f;")
-                  ? Icon(Icons.accessible,
-                  size: 25.0,
-                  color: colorFromHex(spotType.textColor!))
-                  : Text(
-                spotType.spotKey!.contains("SR")
-                    ? "RS"
-                    : spotType.text!,
-                style: TextStyle(
-                  color: colorFromHex(spotType.textColor!),
-                ),
-              ),
-            )
-                : Container(),
+              )
           )
         ],
       ),
     );
   }
 
-  Color colorFromHex(String hexColor) {
+  static Color colorFromHex(String hexColor) {
     final hexCode = hexColor.replaceAll('#', '');
     if (hexColor.length == 6) {
       hexColor =
@@ -226,7 +143,7 @@ class CircularParkingIndicators extends HookWidget {
     return Color(int.parse('FF$hexCode', radix: 16));
   }
 
-  Color getColor(double value) {
+  static Color getColor(double value) {
     if (value > .75) {
       return Colors.green;
     }
@@ -236,7 +153,7 @@ class CircularParkingIndicators extends HookWidget {
     return Colors.red;
   }
 
-  Widget buildLocationContext(BuildContext context) {
+  Widget buildLocationContext() {
     return Center(
       child: Text(model.locationContext ?? "",
           style: TextStyle(
@@ -279,52 +196,26 @@ class CircularParkingIndicators extends HookWidget {
 
   /// Returns the total number of spots open at a given location
   /// does not filter based on spot type
-  Map<String, num> getApproxNumOfOpenSpots(String? locationId, List<ParkingModel> parking) {
-    //TODO: rewrite this entire function!
-    Map<String, ParkingModel> _parkingModels = Map<String, ParkingModel>.fromIterable(parking,
-        key: (parkingModel) => parkingModel.locationName!,
-        value: (parkingModel) => parkingModel);
-    Map<String, num> totalAndOpenSpots = {"Open": 0, "Total": 0};
-    if (_parkingModels[locationId] != null &&
-        _parkingModels[locationId]!.availability != null) {
-      for (dynamic spot in _parkingModels[locationId]!.availability!.keys) {
-        if (_parkingModels[locationId]!.availability![spot]['Open'] != null &&
-            _parkingModels[locationId]!.availability![spot]['Open'] != "") {
-          totalAndOpenSpots["Open"] = totalAndOpenSpots["Open"]! +
-              (_parkingModels[locationId]!.availability![spot]['Open']
-              is String
-                  ? int.parse(
-                  _parkingModels[locationId]!.availability![spot]['Open'])
-                  : _parkingModels[locationId]!.availability![spot]['Open']);
-        }
+  Map<String, num> getApproxNumOfOpenSpots() {
+    int openSpots = 0;
+    int totalSpots = 0;
 
-        if (_parkingModels[locationId]!.availability![spot]['Total'] != null &&
-            _parkingModels[locationId]!.availability![spot]['Total'] != "") {
-          totalAndOpenSpots["Total"] = totalAndOpenSpots["Total"]! +
-              (_parkingModels[locationId]!.availability![spot]['Total']
-              is String
-                  ? int.parse(
-                  _parkingModels[locationId]!.availability![spot]['Total'])
-                  : _parkingModels[locationId]!.availability![spot]['Total']);
-        }
-      }
-    }
-    return totalAndOpenSpots;
+    model.availability!.forEach((spot, availability) {
+        openSpots += availability!['Open']!;
+        totalSpots += availability['Total']!;
+    });
+
+    return {"Open": openSpots, "Total": totalSpots};
   }
 
-  // TODO: rearchitect this function
-  Widget buildSpotsAvailableText(BuildContext context, List<ParkingModel>? parking) {
-    if (parking == null)
-      return Text("");
-
+  Widget buildSpotsAvailableText(List<Spot> spots) {
     return Center(
       child: Text("~" +
-          getApproxNumOfOpenSpots(model.locationName, parking)["Open"]
-              .toString() +
+          getApproxNumOfOpenSpots()["Open"].toString() +
           " of " +
-          getApproxNumOfOpenSpots(model.locationName, parking)["Total"]
-              .toString() +
-          " Spots Available"),
+          getApproxNumOfOpenSpots()["Total"].toString() +
+          " Spots Available"
+      ),
     );
   }
 }

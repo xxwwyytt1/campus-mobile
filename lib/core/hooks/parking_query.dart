@@ -11,8 +11,8 @@ UseQueryResult<List<ParkingModel>, dynamic> useFetchParkingModels()
 {
   // TODO: implement the logic for refreshing access token as needed
   return useQuery(['parking'], () async {
-    final String campusParkingServiceApiUrl =
-        "https://api-qa.ucsd.edu:8243/campusparkingservice/v1.3";
+    const String campusParkingServiceApiUrl = "https://api-qa.ucsd.edu:8243/campusparkingservice/v1.3";
+
     /// fetch data
     String _response = await NetworkHelper().authorizedFetch(
         campusParkingServiceApiUrl+ "/status", {
@@ -32,8 +32,8 @@ UseQueryResult<List<Spot>, dynamic> useFetchSpotTypesModel()
 {
   // TODO: implement the logic for refreshing access token as needed
   return useQuery(['spot'], () async {
-    final String campusSpotTypeApiUrl =
-        "https://mobile.ucsd.edu/replatform/v1/qa/integrations/parking/v1.2/spot_types.json";
+    const String campusSpotTypeApiUrl = "https://mobile.ucsd.edu/replatform/v1/qa/integrations/parking/v1.2/spot_types.json";
+
     /// fetch data
     String _response = await NetworkHelper().authorizedFetch(
         campusSpotTypeApiUrl, {
