@@ -4,6 +4,9 @@
 
 import 'dart:convert';
 
+import 'package:campus_mobile_experimental/core/models/term.dart';
+import 'package:intl/intl.dart';
+
 ClassScheduleModel classScheduleModelFromJson(String str) =>
     ClassScheduleModel.fromJson(json.decode(str));
 
@@ -165,4 +168,174 @@ class Metadata {
   factory Metadata.fromJson(Map<String, dynamic>? json) => Metadata();
 
   Map<String, dynamic> toJson() => {};
+}
+
+class StudentClasses {
+  String? nextDayWithClass;
+  int? selectedCourse;
+  ClassScheduleModel classScheduleModel;
+  Map<String, List<SectionData>> enrolledClasses;
+  Map<String, List<SectionData>> finals;
+  Map<String, List<SectionData>> midterms;
+  AcademicTermModel academicTermModel;
+
+  StudentClasses({
+    this.nextDayWithClass,
+    this.selectedCourse,
+    required this.classScheduleModel,
+    required this.enrolledClasses,
+    required this.finals,
+    required this.midterms,
+    required this.academicTermModel
+  });
+
+  void createMapOfClasses() {
+    List<ClassData> enrolledCourses = [];
+
+    /// add only enrolled classes because api returns wait-listed and dropped
+    /// courses as well
+    for (ClassData classData in classScheduleModel!.data!) {
+      if (classData.enrollmentStatus == 'EN') {
+        enrolledCourses.add(classData);
+      }
+    }
+
+    // if (enrolledCourses.isEmpty) {
+    //   _error = "No enrolled courses found.";
+    //   _isLoading = false;
+    //   notifyListeners();
+    // }
+    for (ClassData classData in enrolledCourses) {
+      for (SectionData sectionData in classData.sectionData!) {
+        /// copy over info from [ClassData] object and put into [SectionData] object
+        sectionData.subjectCode = classData.subjectCode;
+        sectionData.courseCode = classData.courseCode;
+        sectionData.courseTitle = classData.courseTitle;
+        sectionData.gradeOption = buildGradeEvaluation(classData.gradeOption);
+        String? day = 'OTHER';
+        if (sectionData.days != null) {
+          day = sectionData.days;
+        } else {
+          continue;
+        }
+
+        if (sectionData.specialMtgCode != 'FI' &&
+            sectionData.specialMtgCode != 'MI') {
+          enrolledClasses![day!]!.add(sectionData);
+        } else if (sectionData.specialMtgCode == 'FI') {
+          finals![day!]!.add(sectionData);
+        } else if (sectionData.specialMtgCode == 'MI') {
+          midterms!['MI']!.add(sectionData);
+        }
+      }
+    }
+
+    /// chronologically sort classes for each day
+    for (List<SectionData> listOfClasses in enrolledClasses!.values.toList()) {
+      listOfClasses.sort((a, b) => _compare(a, b));
+    }
+    for (List<SectionData> listOfFinals in finals!.values.toList()) {
+      listOfFinals.sort((a, b) => _compare(a, b));
+    }
+    for (List<SectionData> listOfMidterms in midterms!.values.toList()) {
+      listOfMidterms.sort((a, b) => _compare(a, b));
+      listOfMidterms.sort((a, b) => _compareMidterms(a, b));
+    }
+  }
+
+  int _compareMidterms(SectionData a, SectionData b) {
+    DateTime dateTimeA = DateFormat('yyyy-M-dd').parse(a.date!);
+    DateTime dateTimeB = DateFormat('yyyy-M-dd').parse(b.date!);
+
+    if (dateTimeA.compareTo(dateTimeB) == 0) {
+      return 0;
+    }
+    if (dateTimeA.compareTo(dateTimeB) < 0) {
+      return -1;
+    }
+    return 1;
+  }
+
+  /// comparator that sorts according to start time of class
+  int _compare(SectionData a, SectionData b) {
+    if (a.time == null || b.time == null) {
+      return 0;
+    }
+    DateTime aStartTime = getStartTime(a.time!);
+    DateTime bStartTime = getStartTime(b.time!);
+
+    if (aStartTime == bStartTime) {
+      return 0;
+    }
+    if (aStartTime.isBefore(bStartTime)) {
+      return -1;
+    }
+    return 1;
+  }
+
+  buildGradeEvaluation(String? gradeEvaluation) {
+    switch (gradeEvaluation) {
+      case 'L':
+        {
+          return 'Letter Grade';
+        }
+      case 'P':
+        {
+          return 'Pass/No Pass';
+        }
+      case 'S':
+        {
+          return 'Sat/Unsat';
+        }
+      default:
+        {
+          return 'Other';
+        }
+    }
+  }
+
+  DateTime getStartTime(String time) {
+    List<String> times = time.split("-");
+    final format = DateFormat.Hm();
+    return format.parse(times[0]);
+  }
+
+  List<SectionData> get upcomingCourses {
+    try {
+      /// get weekday and return [List<SectionData>] associated with current weekday
+      List<SectionData> listToReturn = [];
+      String today = DateFormat('EEEE')
+          .format(DateTime.now())
+          .toString()
+          .toUpperCase()
+          .substring(0, 2);
+      nextDayWithClass = DateFormat('EEEE').format(DateTime.now()).toString();
+
+      /// if no classes are scheduled for today then find the next day with classes
+      int daysToAdd = 1;
+
+      while (enrolledClasses[today]!.isEmpty && daysToAdd <= 7) {
+        today = DateFormat('EEEE')
+            .format(DateTime.now().add(Duration(days: daysToAdd)))
+            .toString()
+            .toUpperCase()
+            .substring(0, 2);
+        nextDayWithClass = DateFormat('EEEE')
+            .format(DateTime.now().add(Duration(days: daysToAdd)));
+        daysToAdd += 1;
+      }
+
+      if (enrolledClasses[today]!.isNotEmpty) {
+        listToReturn.addAll(enrolledClasses[today]!);
+      } else {
+        listToReturn.addAll([]);
+      }
+      return listToReturn;
+    } catch (err) {
+      print('classes provider err');
+      print(err);
+      return [];
+    }
+  }
+
 }
