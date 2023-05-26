@@ -5,14 +5,14 @@ import '../models/classes.dart';
 import '../models/term.dart';
 
 UseQueryResult<StudentClasses, dynamic> useStudentClassesModel(String accessToken) {
-
+  final academicTerm = useFetchAcademicTermModel(accessToken);
+  /// fetch courses
+  final GRCourses = useFetchGRCoursesModel(accessToken, academicTerm.data!.termCode!);
+  final UNCourses = useFetchUNCoursesModel(accessToken, academicTerm.data!.termCode!);
   return useQuery(['StudentClasses'], () async {
-    final academicTerm = useFetchAcademicTermModel(accessToken);
-      /// fetch courses
-      final GRCourses = useFetchGRCoursesModel(accessToken, academicTerm.data!.termCode!);
-      final UNCourses = useFetchUNCoursesModel(accessToken, academicTerm.data!.termCode!);
       ClassScheduleModel classScheduleModel = ClassScheduleModel();
       // only use isfetching/iserror
+      // circle when reload -> isrefeching
       if (GRCourses.isSuccess) {
         classScheduleModel = GRCourses.data!;
       }
@@ -56,7 +56,7 @@ UseQueryResult<StudentClasses, dynamic> useStudentClassesModel(String accessToke
           academicTermModel: academicTerm.data!);
       _studentClasses.createMapOfClasses();
       return _studentClasses;
-  }, enabled: true);
+  }, enabled: academicTerm.isSuccess && GRCourses.isSuccess && UNCourses.isSuccess);
 
 }
 
