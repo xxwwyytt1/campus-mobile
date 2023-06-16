@@ -172,22 +172,21 @@ class Metadata {
 
 class StudentClasses {
   String? nextDayWithClass;
-  int? selectedCourse;
+  int selectedCourse;
   ClassScheduleModel classScheduleModel;
   Map<String, List<SectionData>> enrolledClasses;
   Map<String, List<SectionData>> finals;
   Map<String, List<SectionData>> midterms;
   AcademicTermModel academicTermModel;
 
-  StudentClasses({
-    this.nextDayWithClass,
-    this.selectedCourse,
-    required this.classScheduleModel,
-    required this.enrolledClasses,
-    required this.finals,
-    required this.midterms,
-    required this.academicTermModel
-  });
+  StudentClasses(
+      {this.nextDayWithClass,
+      required this.selectedCourse,
+      required this.classScheduleModel,
+      required this.enrolledClasses,
+      required this.finals,
+      required this.midterms,
+      required this.academicTermModel});
 
   void createMapOfClasses() {
     List<ClassData> enrolledCourses = [];
@@ -241,6 +240,11 @@ class StudentClasses {
       listOfMidterms.sort((a, b) => _compare(a, b));
       listOfMidterms.sort((a, b) => _compareMidterms(a, b));
     }
+  }
+
+  StudentClasses selectCourse(int index) {
+    this.selectedCourse = index;
+    return this;
   }
 
   int _compareMidterms(SectionData a, SectionData b) {
@@ -332,10 +336,9 @@ class StudentClasses {
       }
       return listToReturn;
     } catch (err) {
-      print('classes provider err');
+      print('StudentClasses upcomingCourses err');
       print(err);
       return [];
     }
   }
-
 }

@@ -1,21 +1,34 @@
 import 'package:campus_mobile_experimental/core/models/classes.dart';
-import 'package:campus_mobile_experimental/core/providers/classes.dart';
+// import 'package:campus_mobile_experimental/core/providers/classes.dart';
 import 'package:flutter/material.dart';
+import 'package:flutter_hooks/flutter_hooks.dart';
+import 'package:fquery/fquery.dart';
 import 'package:intl/intl.dart';
 import 'package:provider/provider.dart';
 
-class UpcomingCoursesList extends StatelessWidget {
+import '../../core/hooks/classes_query.dart';
+import '../../core/providers/user.dart';
+
+class UpcomingCoursesList extends HookWidget {
+  late final UseQueryResult<StudentClasses, dynamic> classes;
+  late final queryClient;
   @override
   Widget build(BuildContext context) {
-    List<SectionData> data =
-        Provider.of<ClassScheduleDataProvider>(context).upcomingCourses;
-    int? selectedCourseIndex =
-        Provider.of<ClassScheduleDataProvider>(context).selectedCourse;
+    final userDataProvider = useMemoized(() {
+      debugPrint("Memoized UserDataProvider!");
+      return Provider.of<UserDataProvider>(context);
+    }, [context]);
+    final accessToken = userDataProvider.authenticationModel!.accessToken!;
+    classes = useFetchClasses(accessToken);
+    queryClient = useQueryClient();
+
+    List<SectionData> data = classes.data!.upcomingCourses;
+    final selectedCourseIndex = classes.data!.selectedCourse;
     return buildListOfCourses(data, selectedCourseIndex, context);
   }
 
   Widget buildListOfCourses(
-      List<SectionData> data, int? selectedCourse, BuildContext context) {
+      List<SectionData> data, int selectedCourse, BuildContext context) {
     List<Widget> listOfCourses = List.generate(data.length, (int index) {
       return buildTile(index, selectedCourse, data[index], context);
     });
@@ -28,8 +41,14 @@ class UpcomingCoursesList extends StatelessWidget {
         ));
   }
 
+  void setSelectedCourse(int index) {
+    queryClient.setQueryData<StudentClasses>(['FetchClasses'], (previous) {
+      return previous?.selectCourse(index);
+    });
+  }
+
   Widget buildTile(
-      int index, int? selectedCourse, SectionData data, BuildContext context) {
+      int index, int selectedCourse, SectionData data, BuildContext context) {
     return Padding(
       padding: const EdgeInsets.only(top: 4.0, right: 8.0),
       child: Container(
@@ -37,9 +56,7 @@ class UpcomingCoursesList extends StatelessWidget {
         decoration: createBorder(),
         child: ListTile(
           dense: true,
-          onTap: () =>
-              Provider.of<ClassScheduleDataProvider>(context, listen: false)
-                  .selectCourse(index),
+          onTap: () => setSelectedCourse(index),
           title: buildClassTitle(data),
           subtitle: buildClassTimeText(data, context),
           selected: index == selectedCourse,

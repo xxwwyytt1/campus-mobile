@@ -2,18 +2,21 @@ import 'package:campus_mobile_experimental/app_constants.dart';
 import 'package:campus_mobile_experimental/app_styles.dart';
 import 'package:campus_mobile_experimental/core/models/classes.dart';
 import 'package:campus_mobile_experimental/core/providers/cards.dart';
-import 'package:campus_mobile_experimental/core/providers/classes.dart';
 import 'package:campus_mobile_experimental/ui/classes/upcoming_classes.dart';
 import 'package:campus_mobile_experimental/ui/common/card_container.dart';
 import 'package:campus_mobile_experimental/ui/common/last_updated_widget.dart';
 import 'package:campus_mobile_experimental/ui/common/time_range_widget.dart';
 import 'package:firebase_crashlytics/firebase_crashlytics.dart';
 import 'package:flutter/material.dart';
+import 'package:flutter_hooks/flutter_hooks.dart';
 import 'package:provider/provider.dart';
+
+import '../../core/hooks/classes_query.dart';
+import '../../core/providers/user.dart';
 
 const String cardId = 'schedule';
 
-class ClassScheduleCard extends StatelessWidget {
+class ClassScheduleCard extends HookWidget {
   List<Widget> buildActionButtons(BuildContext context) {
     List<Widget> actionButtons = [];
     actionButtons.add(TextButton(
@@ -33,27 +36,32 @@ class ClassScheduleCard extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final userDataProvider = useMemoized(() {
+      debugPrint("Memoized UserDataProvider!");
+      return Provider.of<UserDataProvider>(context);
+    }, [context]);
+    final accessToken = userDataProvider.authenticationModel!.accessToken!;
+    final classes = useFetchClasses(accessToken);
+    // debugPrint("classes: " + classes.isFetching.toString());
     return CardContainer(
       active: Provider.of<CardsDataProvider>(context).cardStates![cardId],
       hide: () => Provider.of<CardsDataProvider>(context, listen: false)
           .toggleCard(cardId),
       reload: () {
-        if (Provider.of<ClassScheduleDataProvider>(context, listen: false)
-            .isLoading!) {
+        if (classes.isFetching) {
           return null;
         } else {
-          Provider.of<ClassScheduleDataProvider>(context, listen: false)
-              .fetchData();
+          classes.refetch();
         }
       },
-      isLoading: Provider.of<ClassScheduleDataProvider>(context).isLoading,
+      isLoading: classes.isFetching && !classes.isSuccess,
       titleText: CardTitleConstants.titleMap[cardId],
-      errorText: Provider.of<ClassScheduleDataProvider>(context).error,
+      errorText: classes.isError ? "" : null,
       child: () => buildClassScheduleCard(
-        Provider.of<ClassScheduleDataProvider>(context).upcomingCourses,
-        Provider.of<ClassScheduleDataProvider>(context).selectedCourse!,
-        Provider.of<ClassScheduleDataProvider>(context).lastUpdated,
-        Provider.of<ClassScheduleDataProvider>(context).nextDayWithClass!,
+        classes.data!.upcomingCourses,
+        classes.data!.selectedCourse!,
+        classes.dataUpdatedAt,
+        classes.data!.nextDayWithClass!,
       ),
       actionButtons: buildActionButtons(context),
     );

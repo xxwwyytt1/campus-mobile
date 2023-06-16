@@ -1,50 +1,45 @@
 import 'package:campus_mobile_experimental/core/models/classes.dart';
-import 'package:campus_mobile_experimental/core/providers/classes.dart';
 import 'package:campus_mobile_experimental/ui/common/container_view.dart';
 import 'package:campus_mobile_experimental/ui/common/time_range_widget.dart';
 import 'package:flutter/material.dart';
+import 'package:flutter_hooks/flutter_hooks.dart';
 import 'package:flutter_sticky_header/flutter_sticky_header.dart';
 import 'package:provider/provider.dart';
 
-class ClassList extends StatelessWidget {
+import '../../core/hooks/classes_query.dart';
+import '../../core/providers/user.dart';
+
+class ClassList extends HookWidget {
   @override
   Widget build(BuildContext context) {
+    final userDataProvider = useMemoized(() {
+      debugPrint("Memoized UserDataProvider!");
+      return Provider.of<UserDataProvider>(context);
+    }, [context]);
+    final accessToken = userDataProvider.authenticationModel!.accessToken!;
+    final classes = useFetchClasses(accessToken);
     return ContainerView(
-      child: buildSchedule(context),
+      child: buildSchedule(context, classes.data!),
     );
   }
 
-  Widget buildSchedule(BuildContext context) {
+  Widget buildSchedule(BuildContext context, StudentClasses classes) {
     List<Widget> list = [];
-    Provider.of<ClassScheduleDataProvider>(context)
-        .enrolledClasses!
-        .addAll(Provider.of<ClassScheduleDataProvider>(context).midterms!);
-    Provider.of<ClassScheduleDataProvider>(context)
-        .enrolledClasses!
-        .keys
-        .forEach(
+    classes.enrolledClasses!.addAll(classes.midterms!);
+    classes.enrolledClasses!.keys.forEach(
       (key) {
-        if (Provider.of<ClassScheduleDataProvider>(context)
-            .enrolledClasses![key]!
-            .isNotEmpty) {
+        if (classes.enrolledClasses![key]!.isNotEmpty) {
           list.add(SliverStickyHeader(
             header: buildWeekDayHeader(context, key),
             sliver: SliverList(
               delegate: SliverChildBuilderDelegate((context, index) {
                 if (key == 'MI') {
                   return buildMidterm(
-                      Provider.of<ClassScheduleDataProvider>(context)
-                          .enrolledClasses![key]!
-                          .elementAt(index));
+                      classes.enrolledClasses![key]!.elementAt(index));
                 }
                 return buildClass(
-                    Provider.of<ClassScheduleDataProvider>(context)
-                        .enrolledClasses![key]!
-                        .elementAt(index));
-              },
-                  childCount: Provider.of<ClassScheduleDataProvider>(context)
-                      .enrolledClasses![key]!
-                      .length),
+                    classes.enrolledClasses![key]!.elementAt(index));
+              }, childCount: classes.enrolledClasses![key]!.length),
             ),
           ));
         }
