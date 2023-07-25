@@ -20,3 +20,4 @@ UseQueryResult<EmployeeIdModel, dynamic> useFetchEmployeeIdModel(String accessTo
     return data;
   });
 }
+

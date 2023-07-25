@@ -21,8 +21,10 @@ import '../utils/user_credentials.dart';
 // useFetchUserProfileModel() -> UserProfileModel?
 // isLoggedIn() -> bool
 //
+//first time fetching from the server getting credentials
 // _fetchUserProfileFromNetwork(String base64EncodedWithEncryptedPassword) -> UserProfileModel
 // _saveUserProfile(UserProfileModel) -> void
+//already fetched it once (called top function), load from local storage
 // _loadUserProfile() -> UserProfileModel?
 //
 // NOTE: if we are not using Hive for encryption, create an EncryptionHelper class
@@ -31,17 +33,7 @@ import '../utils/user_credentials.dart';
 // [ x ] silentLogin() (delete this)
 // [ x ] manualLogin() (TENTATIVE: not sure yet, most likely)
 
-//if this function gets too long, split into 2 functions and can make one a private function by adding an underscore in the front
-UseQueryResult<AuthenticationModel?, dynamic> useFetchAuthenticationModel(String base64EncodedWithEncryptedPassword, String username, String password)
-{
-  return useQuery(['authentication'], () async {
-    //TODO: check if user and password exist, otherwise return null
-    //TODO: move manualLogin function from user.dart into this file
-    //TODO: move all silentLogin into this file, return null if doesn't exist, if there is error throw exception
-    ///INITIALIZE SERVICES
-
-    ///default authentication model and profile is needed in this class
-
+Future<bool> isLoggedIn() async {
     var userProfileModel = UserProfileModel.fromJson({});
     //silent login
     bool silentLogin = false;
@@ -49,6 +41,8 @@ UseQueryResult<AuthenticationModel?, dynamic> useFetchAuthenticationModel(String
     String? encryptedPassword = await getEncryptedPasswordFromDevice();
     /// Allow silentLogin if username, pw are set, and the user is not logged in
     if (user != null && encryptedPassword != null) {
+      final String base64EncodedWithEncryptedPassword =
+          base64.encode(utf8.encode(user + ':' + encryptedPassword));
       silentLogin = true;
       if (await AuthenticationService()
           .login(base64EncodedWithEncryptedPassword)) {
@@ -70,11 +64,24 @@ UseQueryResult<AuthenticationModel?, dynamic> useFetchAuthenticationModel(String
         PushNotificationDataProvider()
             .registerDevice(AuthenticationService().data!.accessToken);
         await FirebaseAnalytics().logEvent(name: 'loggedIn');
+        return true;
       }
     }
     else {
       _logout();
     }
+    return false;
+}
+//if this function gets too long, split into 2 functions and can make one a private function by adding an underscore in the front
+UseQueryResult<AuthenticationModel?, dynamic> useFetchAuthenticationModel(String base64EncodedWithEncryptedPassword, String username, String password)
+{
+  return useQuery(['authentication'], () async {
+    //TODO: check if user and password exist, otherwise return null
+    //TODO: move manualLogin function from user.dart into this file
+    //TODO: move all silentLogin into this file, return null if doesn't exist, if there is error throw exception
+    ///INITIALIZE SERVICES
+
+    ///default authentication model and profile is needed in this class
     //manual login
     if (username.isNotEmpty && password.isNotEmpty) {
       encryptAndSaveCredentials(username!, password);
@@ -109,7 +116,30 @@ UseQueryResult<AuthenticationModel?, dynamic> useFetchAuthenticationModel(String
   });
 }
 
-Future _fetchUserProfile() async {
+// services/user.dart
+// load user profile
+// pass results into saveuserprofilemodel
+Future<UserProfileModel?> _fetchUserProfileFromNetwork(String base64EncodedWithEncryptedPassword) async {
+   try {
+    // Open the Hive box that contains instances of UserProfileModel
+    final box = await Hive.openBox<UserProfileModel>('userProfile');
+
+    // Retrieve the instance of AuthenticationModel from the box
+    final userModel = box.get(base64EncodedWithEncryptedPassword);
+
+    // Close the box
+    await box.close();
+
+    // Return the retrieved instance
+    return userModel;
+  } catch (e) {
+    // Handle errors
+    print('Error retrieving AuthenticationModel from Hive: $e');
+    return null;
+  }
+}
+
+Future _loadUserProfile() async {
   var authenticationModel = AuthenticationModel.fromJson({});
 
   if (authenticationModel!.isLoggedIn(_lastUpdated)) {
@@ -123,7 +153,7 @@ Future _fetchUserProfile() async {
       UserProfileModel newModel = UserProfileService().userProfileModel!;
       if (newModel.ucsdaffiliation == null) {
         newModel = await _createNewUser(newModel);
-        await _postUserProfile(newModel);
+        await _saveUserProfile(newModel);
       } else {
         newModel.username = await getUsernameFromDevice();
         newModel.ucsdaffiliation = authenticationModel!.ucsdaffiliation;
@@ -162,8 +192,6 @@ Future _fetchUserProfile() async {
 
 Future<UserProfileModel> _createNewUser() async
 {
-
-
   await PushNotificationDataProvider().fetchTopicsList();
   try {
     UserProfileModel profile;
@@ -198,7 +226,7 @@ Future<UserProfileModel> _createNewUser() async
   return profile;
 }
 
-Future _postUserProfile(UserProfileModel? profile) async {
+Future _saveUserProfile(UserProfileModel? profile) async {
   /// save settings to local storage
   await _updateUserProfileModel(profile);
   /// check if user is logged in
